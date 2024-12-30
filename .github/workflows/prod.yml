@@ -1,0 +1,16 @@
+name: Deployment Unit Production Deployment
+permissions:
+  contents: read
+  pull-requests: write
+on:
+  workflow_dispatch:
+    inputs:
+      image_version:
+        description: 'Image version to deploy'
+        required: true
+        default: ''
+
+jobs:
+  top-level-node-frontend:
+    uses: krystof-io/common-workflows/.github/workflows/top-level-node-frontend-deploy.yaml@main
+    secrets: inherit

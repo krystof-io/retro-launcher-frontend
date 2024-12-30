@@ -1,0 +1,14 @@
+name: Deployment Unit Tag Build
+permissions:
+  contents: read
+  pull-requests: write
+on:
+  workflow_dispatch:
+  workflow_call:
+  push:
+    tags:
+      - '**'
+jobs:
+  top-level-node-frontend:
+    uses: krystof-io/common-workflows/.github/workflows/top-level-node-frontend-build.yaml@main
+    secrets: inherit
