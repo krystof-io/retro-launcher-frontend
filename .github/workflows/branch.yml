@@ -1,4 +1,4 @@
-name: Deployment Unit Branch Build
+name: Node Frontend Branch Build
 permissions:
   contents: read
   pull-requests: write

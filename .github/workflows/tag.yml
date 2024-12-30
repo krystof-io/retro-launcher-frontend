@@ -1,4 +1,4 @@
-name: Deployment Unit Tag Build
+name: Node Frontend Tag Build
 permissions:
   contents: read
   pull-requests: write

@@ -1,4 +1,4 @@
-name: Deployment Unit Production Deployment
+name: Node Frontend Production Deployment
 permissions:
   contents: read
   pull-requests: write
