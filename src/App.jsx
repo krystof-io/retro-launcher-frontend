@@ -1,35 +1,55 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+// src/App.jsx
+import { useState, useEffect } from 'react';
+import { Container, Card, Alert } from 'react-bootstrap';
+import 'bootstrap/dist/css/bootstrap.min.css';
 
 function App() {
-  const [count, setCount] = useState(0)
+    const [status, setStatus] = useState(null);
+    const [error, setError] = useState(null);
 
-  return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.jsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
+    useEffect(() => {
+        const fetchStatus = async () => {
+            try {
+                const response = await fetch('/api/status');
+                if (!response.ok) throw new Error('Network response was not ok');
+                const data = await response.json();
+                setStatus(data);
+                setError(null);
+            } catch (error) {
+                console.error('Error fetching status:', error);
+                setError(error.message || 'An error occurred');
+            }
+        };
+
+        fetchStatus();
+        const interval = setInterval(fetchStatus, 1000);
+        return () => clearInterval(interval);
+    }, []);
+
+    return (
+        <Container className="mt-4">
+            <h1>Retro Launcher</h1>
+
+            {error && (
+                <Alert variant="danger" className="mt-3">
+                    Error: {error}
+                </Alert>
+            )}
+
+            {status && (
+                <Card className="mt-3">
+                    <Card.Body>
+                        <Card.Title>Emulator Status</Card.Title>
+                        <Alert variant={status.running ? 'success' : 'warning'}>
+                            Status: {status.running ? 'Running' : 'Stopped'}
+                        </Alert>
+                        {status.currentDemo && <p>Current Demo: {status.currentDemo}</p>}
+                        <p>Uptime: {Math.floor(status.uptime / 5000)} seconds</p>
+                    </Card.Body>
+                </Card>
+            )}
+        </Container>
+    );
 }
 
-export default App
+export default App;
