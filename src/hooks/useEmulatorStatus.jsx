@@ -27,20 +27,37 @@ export const useEmulatorStatus = () => {
 
         ws.onmessage = (event) => {
             try {
-                console.log(event);
-                const data = JSON.parse(event.data);
-                console.log(data);
-                setStatus(data);
-                setError(null);
+                const message = JSON.parse(event.data);
+                console.log('Received message:', message);
+
+                switch (message.type) {
+                    case 'STATUS_UPDATE':
+                        setStatus(message.payload);
+                        setError(null);
+                        break;
+                    case 'ERROR':
+                        setError(message.payload);
+                        break;
+                    default:
+                        console.warn('Unknown message type:', message.type);
+                }
             } catch (err) {
                 console.error('Error parsing WebSocket message:', err);
-                setError('Failed to parse status update');
+                setError({
+                    code: 'PARSE_ERROR',
+                    message: 'Failed to parse status update',
+                    details: { error: err.message }
+                });
             }
         };
 
         ws.onerror = (event) => {
             console.error('WebSocket error:', event);
-            setError('WebSocket connection error');
+            setError({
+                code: 'CONNECTION_ERROR',
+                message: 'WebSocket connection error',
+                details: { event }
+            });
             setIsConnected(false);
         };
 
@@ -52,6 +69,5 @@ export const useEmulatorStatus = () => {
         return () => ws.close();
     }, []);
 
-    console.log("Asking to return emulator status")
     return { status, error, isConnected };
-}
+};
