@@ -40,9 +40,9 @@ const LaunchConfiguration = ({ program }) => {
 
         // Add autostart with first disk if available
         const fileArg = sortedBinaryArgs.find(arg => arg.fileArgument);
-        if (fileArg && firstDiskImage?.storagePath) {
+        if (fileArg && firstDiskImage?.filePath) {
             parts.push(fileArg.argumentTemplate);
-            parts.push(firstDiskImage.storagePath);
+            parts.push(firstDiskImage.filePath);
         }
 
         return parts.join(' ');
@@ -116,7 +116,7 @@ const LaunchConfiguration = ({ program }) => {
                                 <td className="px-4 py-2 text-sm text-gray-500">Disk</td>
                                 <td className="px-4 py-2 text-sm text-gray-500">999</td>
                                 <td className="px-4 py-2">
-                                    <code className="px-2 py-1 bg-gray-100 rounded">{firstDiskImage.storagePath}</code>
+                                    <code className="px-2 py-1 bg-gray-100 rounded">{firstDiskImage.filePath}</code>
                                 </td>
                                 <td className="px-4 py-2 text-sm text-gray-500">Boot disk image</td>
                             </tr>

@@ -3,8 +3,10 @@ import { useParams } from 'react-router-dom';
 import { Card, Form, Button, Row, Col, Badge, Alert } from 'react-bootstrap';
 import { Edit2, Save, X, AlertTriangle } from 'lucide-react';
 import { AsyncTypeahead } from 'react-bootstrap-typeahead';
-import { fetchProgramById, searchAuthors, updateProgram } from '../services/api';
+import { fetchProgramById, searchAuthors} from '../services/api';
 import LaunchConfiguration from './LaunchConfiguration';
+import ProgramDiskInfo from './ProgramDiskInfo';
+import { useProgramUpdate } from '../hooks/useProgramUpdate';
 
 const ProgramDetail = () => {
     const { id } = useParams();
@@ -13,7 +15,14 @@ const ProgramDetail = () => {
     const [editedData, setEditedData] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
-    const [isSaving, setIsSaving] = useState(false);
+
+
+    const {
+        isLoading: isUpdating,
+        error: updateError,
+        updateProgram,
+        validateUpdates
+    } = useProgramUpdate(program);
 
     // Fetch program data
     useEffect(() => {
@@ -45,15 +54,20 @@ const ProgramDetail = () => {
 
     const handleSave = async () => {
         try {
-            setIsSaving(true);
+            const validationErrors = validateUpdates(editedData);
+            if (validationErrors) {
+                setError('Please correct the following errors: ' +
+                    Object.values(validationErrors).join(', '));
+                return;
+            }
+
             const updatedProgram = await updateProgram(id, editedData);
             setProgram(updatedProgram);
+            setEditedData(updatedProgram);
             setIsEditing(false);
+            setError(null);
         } catch (err) {
-            setError('Failed to save changes');
-            console.error(err);
-        } finally {
-            setIsSaving(false);
+            setError('Failed to save changes: ' + err.message);
         }
     };
 
@@ -71,15 +85,9 @@ const ProgramDetail = () => {
             </Card>
         );
     }
+    // Show any errors that occurred during update
+    const displayError = error || updateError;
 
-    if (error) {
-        return (
-            <Alert variant="danger" className="mt-3">
-                <Alert.Heading>Error</Alert.Heading>
-                <p>{error}</p>
-            </Alert>
-        );
-    }
 
     return (
         <div className="container mt-4">
@@ -91,15 +99,15 @@ const ProgramDetail = () => {
                             <Button
                                 variant="success"
                                 onClick={handleSave}
-                                disabled={isSaving}
+                                disabled={isUpdating}
                             >
                                 <Save size={16} className="me-2" />
-                                Save Changes
+                                {isUpdating ? 'Saving...' : 'Save Changes'}
                             </Button>
                             <Button
                                 variant="outline-secondary"
                                 onClick={handleCancel}
-                                disabled={isSaving}
+                                disabled={isUpdating}
                             >
                                 <X size={16} className="me-2" />
                                 Cancel
@@ -113,6 +121,13 @@ const ProgramDetail = () => {
                     )}
                 </div>
             </div>
+
+            {displayError && (
+                <Alert variant="danger" className="mb-4">
+                    <AlertTriangle size={20} className="me-2" />
+                    {displayError}
+                </Alert>
+            )}
 
             <Row className="mb-4">
                 <Col md={8}>
@@ -177,17 +192,18 @@ const ProgramDetail = () => {
                             <h5 className="mb-0">Authors</h5>
                         </Card.Header>
                         <Card.Body>
-                            <div className="mb-3">
+                            <h5 className="mb-3">
                                 {program?.authors?.map(author => (
                                     <Badge
                                         key={author.id}
-                                        bg="secondary"
+                                        bg="primary"
                                         className="me-2 mb-2"
                                     >
                                         {author.name}
                                     </Badge>
+
                                 )) || 'No authors listed'}
-                            </div>
+                            </h5>
                             {isEditing && (
                                 <AsyncTypeahead
                                     id="author-search"
@@ -293,6 +309,13 @@ const ProgramDetail = () => {
                         program={program}
                         isEditing={isEditing}
                     />
+                </Col>
+            </Row>
+
+            <Row className="mb-4">
+                <Col>
+                    {/* Disk Information */}
+                    <ProgramDiskInfo program={program} />
                 </Col>
             </Row>
         </div>
