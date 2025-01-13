@@ -26,12 +26,14 @@ const ProgramLibrary = () => {
     const [contentRatings, setContentRatings] = useState([]);
     const [curationStatuses, setCurationStatuses] = useState([]);
     const [isLoadingAuthors, setIsLoadingAuthors] = useState(false);
+    const [platformBinaries, setPlatformBinaries] = useState([]);
 
     // Search criteria state
     const [filters, setFilters] = useState({
         titleSearch: '',
         curationStatus: '',
         platform: '',
+        platformBinaryId: '',
         contentRating: '',
         author: '',
         yearFrom: '',
@@ -59,6 +61,7 @@ const ProgramLibrary = () => {
             titleSearch: '',
             curationStatus: '',
             platform: '',
+            platformBinaryId: '',
             contentRating: '',
             author: '',
             yearFrom: '',
@@ -79,6 +82,13 @@ const ProgramLibrary = () => {
                 setPlatforms(platformsData);
                  setContentRatings(ratingsData);
                  setCurationStatuses(statusesData);
+                const allBinaries = platformsData.flatMap(platform =>
+                    platform.binaries.map(binary => ({
+                        ...binary,
+                        platformName: platform.name
+                    }))
+                );
+                setPlatformBinaries(allBinaries);
             } catch (error) {
                 console.error('Error loading initial data:', error);
                 // You might want to show an error message to the user here
@@ -109,6 +119,7 @@ const ProgramLibrary = () => {
             const result = await fetchPrograms({
                 titleSearch: filters.titleSearch,
                 platformId: filters.platform,
+                platformBinaryId: filters.platformBinaryId,
                 curationStatus: filters.curationStatus,
                 contentRating: filters.contentRating,
                 authorId: filters.author,
@@ -255,6 +266,24 @@ const ProgramLibrary = () => {
                             </Form.Group>
                         </Col>
 
+                        {/* Platform Binary */}
+                        <Col md={6} lg={4}>
+                            <Form.Group>
+                                <Form.Label>Platform Binary</Form.Label>
+                                <Form.Select
+                                    value={filters.platformBinaryId}
+                                    onChange={(e) => updateFilter('platformBinaryId', e.target.value)}
+                                >
+                                    <option value="">All Binaries</option>
+                                    {platformBinaries.map(binary => (
+                                        <option key={binary.id} value={binary.id}>
+                                            {binary.platformName} - {binary.name} ({binary.variant})
+                                        </option>
+                                    ))}
+                                </Form.Select>
+                            </Form.Group>
+                        </Col>
+
                         {/* Content Rating */}
                         <Col md={6} lg={4}>
                             <Form.Group>
@@ -335,6 +364,7 @@ const ProgramLibrary = () => {
                         <tr>
                             <th>Title</th>
                             <th>Platform</th>
+                            <th>Binary</th>
                             <th>Type</th>
                             <th>Year</th>
                             <th>Author</th>
@@ -362,6 +392,20 @@ const ProgramLibrary = () => {
                                 <tr key={program.id}>
                                     <td>{program.title}</td>
                                     <td>{program.platform.name}</td>
+                                    <td>
+                                        {program.platformBinary ? (
+                                            <div>
+                                                <div className="font-weight-bold">
+                                                    {program.platformBinary.name}
+                                                </div>
+                                                <small className="text-muted">
+                                                    {program.platformBinary.variant}
+                                                </small>
+                                            </div>
+                                        ) : (
+                                            <span className="text-muted">Default</span>
+                                        )}
+                                    </td>
                                     <td>{program.type}</td>
                                     <td>{program.releaseYear}</td>
                                     <td>

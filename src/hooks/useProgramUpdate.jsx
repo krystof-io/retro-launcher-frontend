@@ -46,6 +46,11 @@ export const useProgramUpdate = (initialProgram) => {
             errors.type = 'Program type is required';
         }
 
+        // Platform validation
+        if (!updates.platform?.id) {
+            errors.platform = 'Platform is required';
+        }
+
         if (!updates.platformBinary?.id) {
             errors.platformBinary = 'Platform binary is required';
         }

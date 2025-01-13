@@ -1,9 +1,8 @@
 import React, { useState } from 'react';
-import { AlertTriangle, ChevronDown, ChevronUp, HardDrive, MinusCircle , Download} from 'lucide-react';
+import { AlertTriangle, ChevronDown, ChevronUp, HardDrive, MinusCircle, Download, ArrowUp, ArrowDown, Trash2 } from 'lucide-react';
 import ClickToCopy from './ClickToCopy';
 
-
-const ProgramDiskInfo = ({ program }) => {
+const ProgramDiskInfo = ({ program, isEditing, onUpdateDiskImages }) => {
     const [isExpanded, setIsExpanded] = useState(true);
 
     if (!program || !program.diskImages || program.diskImages.length === 0) {
@@ -55,6 +54,36 @@ const ProgramDiskInfo = ({ program }) => {
         }
     };
 
+    const handleMove = (diskId, direction) => {
+        const currentIndex = sortedDisks.findIndex(disk => disk.id === diskId);
+        if (direction === 'up' && currentIndex > 0) {
+            // Swap disk numbers with the previous disk
+            const newDisks = [...sortedDisks];
+            const temp = newDisks[currentIndex].diskNumber;
+            newDisks[currentIndex].diskNumber = newDisks[currentIndex - 1].diskNumber;
+            newDisks[currentIndex - 1].diskNumber = temp;
+            onUpdateDiskImages(newDisks);
+        } else if (direction === 'down' && currentIndex < sortedDisks.length - 1) {
+            // Swap disk numbers with the next disk
+            const newDisks = [...sortedDisks];
+            const temp = newDisks[currentIndex].diskNumber;
+            newDisks[currentIndex].diskNumber = newDisks[currentIndex + 1].diskNumber;
+            newDisks[currentIndex + 1].diskNumber = temp;
+            onUpdateDiskImages(newDisks);
+        }
+    };
+
+    const handleDelete = (diskId) => {
+        if (window.confirm('Are you sure you want to remove this disk image?')) {
+            const newDisks = sortedDisks.filter(disk => disk.id !== diskId);
+            // Reorder remaining disks
+            newDisks.forEach((disk, index) => {
+                disk.diskNumber = index + 1;
+            });
+            onUpdateDiskImages(newDisks);
+        }
+    };
+
     return (
         <div className="bg-white rounded-lg shadow">
             {/* Header Section */}
@@ -95,19 +124,17 @@ const ProgramDiskInfo = ({ program }) => {
                                     <th className="pb-2 font-medium">Hash</th>
                                     <th className="pb-2 font-medium">Storage Path</th>
                                     <th className="pb-2 font-medium">Status</th>
-                                    <th className="pb-2 font-medium">Download</th>
+                                    <th className="pb-2 font-medium">Actions</th>
                                 </tr>
                                 </thead>
                                 <tbody className="divide-y">
-                                {sortedDisks.map((disk) => (
+                                {sortedDisks.map((disk, index) => (
                                     <tr key={disk.id} className="hover:bg-gray-50">
                                         <td className="py-3">
-                        <span
-                            className="inline-flex items-center justify-center w-6 h-6 bg-gray-100 rounded-full text-sm font-medium">
-                          {disk.diskNumber}
-                        </span>
+                                            <span className="inline-flex items-center justify-center w-6 h-6 bg-gray-100 rounded-full text-sm font-medium">
+                                                {disk.diskNumber}
+                                            </span>
                                         </td>
-
                                         <td className="py-3">
                                             <div>
                                                 <div className="font-medium">
@@ -134,7 +161,6 @@ const ProgramDiskInfo = ({ program }) => {
                                                 className="text-xs bg-gray-100 px-2 py-1 rounded break-all"
                                             />
                                         </td>
-
                                         <td className="py-3">
                                             <ClickToCopy
                                                 text={disk.storagePath}
@@ -143,21 +169,50 @@ const ProgramDiskInfo = ({ program }) => {
                                         </td>
                                         <td className="py-3">
                                             {disk.diskNumber === 1 ? (
-                                                <span
-                                                    className="inline-flex items-center gap-1 text-green-600 bg-green-50 px-2 py-1 rounded text-sm">
-                            <span className="w-2 h-2 bg-green-500 rounded-full"></span>
-                            Boot Disk
-                          </span>
+                                                <span className="inline-flex items-center gap-1 text-green-600 bg-green-50 px-2 py-1 rounded text-sm">
+                                                    <span className="w-2 h-2 bg-green-500 rounded-full"></span>
+                                                    Boot Disk
+                                                </span>
                                             ) : null}
                                         </td>
                                         <td className="py-3">
-                                            <button
-                                                className="px-2 py-1 bg-blue-500 text-black rounded text-sm hover:bg-blue-600"
-                                                onClick={() => handleDownload(disk.id)}
-                                            >
-                                                <Download className="w-4 h-4 inline-block mr-1"/>
-                                                Download
-                                            </button>
+                                            <div className="flex gap-2">
+                                                {isEditing ? (
+                                                    <>
+                                                        <button
+                                                            className="p-1 text-gray-500 hover:text-gray-700 disabled:opacity-50"
+                                                            onClick={() => handleMove(disk.id, 'up')}
+                                                            disabled={index === 0}
+                                                            title="Move Up"
+                                                        >
+                                                            <ArrowUp className="w-4 h-4" />
+                                                        </button>
+                                                        <button
+                                                            className="p-1 text-gray-500 hover:text-gray-700 disabled:opacity-50"
+                                                            onClick={() => handleMove(disk.id, 'down')}
+                                                            disabled={index === sortedDisks.length - 1}
+                                                            title="Move Down"
+                                                        >
+                                                            <ArrowDown className="w-4 h-4" />
+                                                        </button>
+                                                        <button
+                                                            className="p-1 text-red-500 hover:text-red-700"
+                                                            onClick={() => handleDelete(disk.id)}
+                                                            title="Delete"
+                                                        >
+                                                            <Trash2 className="w-4 h-4" />
+                                                        </button>
+                                                    </>
+                                                ) : (
+                                                    <button
+                                                        className="px-2 py-1 bg-blue-500 text-black rounded text-sm hover:bg-blue-600"
+                                                        onClick={() => handleDownload(disk.id)}
+                                                    >
+                                                        <Download className="w-4 h-4 inline-block mr-1"/>
+                                                        Download
+                                                    </button>
+                                                )}
+                                            </div>
                                         </td>
                                     </tr>
                                 ))}
@@ -170,8 +225,8 @@ const ProgramDiskInfo = ({ program }) => {
                             <div className="mt-4 p-3 bg-yellow-50 text-yellow-800 rounded-lg flex items-center gap-2">
                                 <AlertTriangle className="w-5 h-5" />
                                 <span className="text-sm">
-                  Some disk images are missing hash verification
-                </span>
+                                    Some disk images are missing hash verification
+                                </span>
                             </div>
                         )}
                     </div>

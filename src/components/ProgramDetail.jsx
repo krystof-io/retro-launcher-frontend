@@ -3,10 +3,12 @@ import { useParams } from 'react-router-dom';
 import { Card, Form, Button, Row, Col, Badge, Alert } from 'react-bootstrap';
 import { Edit2, Save, X, AlertTriangle } from 'lucide-react';
 import { AsyncTypeahead } from 'react-bootstrap-typeahead';
-import { fetchProgramById, searchAuthors} from '../services/api';
+import { fetchProgramById, searchAuthors, fetchPlatforms} from '../services/api';
 import LaunchConfiguration from './LaunchConfiguration';
 import ProgramDiskInfo from './ProgramDiskInfo';
+import PlaybackTimeline from './PlaybackTimeline';
 import { useProgramUpdate } from '../hooks/useProgramUpdate';
+import 'react-bootstrap-typeahead/css/Typeahead.css';
 
 const ProgramDetail = () => {
     const { id } = useParams();
@@ -15,7 +17,9 @@ const ProgramDetail = () => {
     const [editedData, setEditedData] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
-
+    const [authorOptions, setAuthorOptions] = useState([]);
+    const [platforms, setPlatforms] = useState([]);
+    const [selectedPlatform, setSelectedPlatform] = useState(null);
 
     const {
         isLoading: isUpdating,
@@ -26,12 +30,18 @@ const ProgramDetail = () => {
 
     // Fetch program data
     useEffect(() => {
-        const loadProgram = async () => {
+
+        const loadInitialData = async () => {
             try {
                 setIsLoading(true);
-                const data = await fetchProgramById(id);
-                setProgram(data);
-                setEditedData(data);
+                const [programData, platformsData] = await Promise.all([
+                    fetchProgramById(id),
+                    fetchPlatforms()
+                ]);
+                setPlatforms(platformsData);
+                setProgram(programData);
+                setEditedData(programData);
+                setSelectedPlatform(platformsData.find(p => p.id === programData.platform.id));
             } catch (err) {
                 setError('Failed to load program details');
                 console.error(err);
@@ -40,11 +50,28 @@ const ProgramDetail = () => {
             }
         };
 
-        loadProgram();
+        loadInitialData();
+
     }, [id]);
 
     const handleEdit = () => {
         setIsEditing(true);
+    };
+
+    // Add platform change handler
+    const handlePlatformChange = (platformId) => {
+        const platform = platforms.find(p => p.id === Number(platformId));
+        setSelectedPlatform(platform);
+
+        // Update editedData with new platform and reset binary
+        handleChange('platform', platform);
+        handleChange('platformBinary', null);
+    };
+
+    // Add binary change handler
+    const handleBinaryChange = (binaryId) => {
+        const binary = selectedPlatform?.binaries?.find(b => b.id === Number(binaryId));
+        handleChange('platformBinary', binary);
     };
 
     const handleCancel = () => {
@@ -78,6 +105,39 @@ const ProgramDetail = () => {
         }));
     };
 
+    const handleAuthorSearch = async (query) => {
+        try {
+            const authors = await searchAuthors(query);
+            setAuthorOptions(authors);
+        } catch (error) {
+            console.error('Error searching authors:', error);
+            setAuthorOptions([]);
+        }
+    };
+
+    const handleAuthorChange = (selectedAuthors) => {
+        // Get the newly selected author (last in array if adding)
+        const newAuthor = selectedAuthors[0];
+
+        if (!newAuthor) return;
+
+        // Create a new Set of author IDs for easy lookup
+        const existingAuthorIds = new Set(editedData.authors.map(a => a.id));
+
+        // Only add if author isn't already in the list
+        if (!existingAuthorIds.has(newAuthor.id)) {
+            const updatedAuthors = [...editedData.authors, newAuthor];
+            handleChange('authors', updatedAuthors);
+        }
+    };
+
+    const handleRemoveAuthor = (authorId) => {
+        if (!isEditing) return;
+
+        const updatedAuthors = editedData.authors.filter(a => a.id !== authorId);
+        handleChange('authors', updatedAuthors);
+    };
+
     if (isLoading) {
         return (
             <Card className="mt-3">
@@ -85,6 +145,13 @@ const ProgramDetail = () => {
             </Card>
         );
     }
+    const handleUpdateDiskImages = (updatedDisks) => {
+        setEditedData(prev => ({
+            ...prev,
+            diskImages: updatedDisks
+        }));
+    };
+
     // Show any errors that occurred during update
     const displayError = error || updateError;
 
@@ -192,25 +259,42 @@ const ProgramDetail = () => {
                             <h5 className="mb-0">Authors</h5>
                         </Card.Header>
                         <Card.Body>
-                            <h5 className="mb-3">
-                                {program?.authors?.map(author => (
+                            <div className="mb-3">
+                                {editedData?.authors?.map(author => (
                                     <Badge
                                         key={author.id}
                                         bg="primary"
                                         className="me-2 mb-2"
+                                        style={{
+                                            display: 'inline-flex',
+                                            alignItems: 'center'
+                                        }}
                                     >
                                         {author.name}
+                                        {isEditing && (
+                                            <X
+                                                size={14}
+                                                className="ms-2 cursor-pointer"
+                                                style={{cursor: 'pointer'}}
+                                                onClick={() => handleRemoveAuthor(author.id)}
+                                            />
+                                        )}
                                     </Badge>
-
-                                )) || 'No authors listed'}
-                            </h5>
+                                ))}
+                                {!editedData?.authors?.length && (
+                                    <span className="text-muted">No authors listed</span>
+                                )}
+                            </div>
                             {isEditing && (
                                 <AsyncTypeahead
                                     id="author-search"
-                                    labelKey="name"
+                                    labelKey={(author) => author.name}
                                     minLength={2}
-                                    onSearch={searchAuthors}
+                                    onSearch={handleAuthorSearch}
+                                    onChange={handleAuthorChange}
+                                    options={authorOptions}
                                     placeholder="Add more authors..."
+                                    selected={[]}
                                     renderMenuItemChildren={(author) => (
                                         <div>
                                             <span>{author.name}</span>
@@ -299,23 +383,93 @@ const ProgramDetail = () => {
                             </Row>
                         </Card.Body>
                     </Card>
+
                 </Col>
+
             </Row>
 
             <Row className="mb-4">
                 <Col>
-                    {/* Launch Configuration */}
-                    <LaunchConfiguration
-                        program={program}
+                    <PlaybackTimeline
+                        program={editedData}
                         isEditing={isEditing}
+                        onUpdateEvents={(events) => {
+                            handleChange('playbackTimelineEvents', events);
+                        }}
                     />
                 </Col>
             </Row>
 
             <Row className="mb-4">
+                {isEditing && (
+                    <Col md={4}>
+
+                        <Form.Group className="mb-3">
+                            <Form.Label>Platform</Form.Label>
+
+                            <Form.Select
+                                value={editedData?.platform?.id || ''}
+                                onChange={(e) => handlePlatformChange(e.target.value)}
+                            >
+                                <option value="">Select Platform</option>
+                                {platforms.map(platform => (
+                                    <option key={platform.id} value={platform.id}>
+                                        {platform.name}
+                                    </option>
+                                ))}
+                            </Form.Select>
+
+                        </Form.Group>
+
+                        <Form.Group className="mb-3">
+                            <Form.Label>Platform Binary</Form.Label>
+
+                                <Form.Select
+                                    value={editedData?.platformBinary?.id || ''}
+                                    onChange={(e) => handleBinaryChange(e.target.value)}
+                                    disabled={!selectedPlatform}
+                                >
+                                    <option value="">Select Binary</option>
+                                    {selectedPlatform?.binaries?.map(binary => (
+                                        <option key={binary.id} value={binary.id}>
+                                            {binary.name} ({binary.variant})
+                                            {binary.isDefault && ' - Default'}
+                                        </option>
+                                    ))}
+                                </Form.Select>
+
+                        </Form.Group>
+
+                        {editedData?.platformBinary?.description && (
+                            <Alert variant="info" className="mt-2">
+                                <small>{editedData.platformBinary.description}</small>
+                            </Alert>
+                        )}
+                    </Col>
+
+                        )}
+
+                <Col>
+                    {/* Launch Configuration */}
+                    <LaunchConfiguration
+                        program={editedData}
+                        isEditing={isEditing}
+                        onUpdateLaunchArgs={(args) => {
+                            handleChange('launchArguments', args);
+                        }}
+                    />
+                </Col>
+
+            </Row>
+
+            <Row className="mb-4">
                 <Col>
                     {/* Disk Information */}
-                    <ProgramDiskInfo program={program} />
+                    <ProgramDiskInfo
+                        program={editedData}
+                        isEditing={isEditing}
+                        onUpdateDiskImages={handleUpdateDiskImages}
+                    />
                 </Col>
             </Row>
         </div>

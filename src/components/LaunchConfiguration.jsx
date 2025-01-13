@@ -1,7 +1,18 @@
 import { useState } from 'react';
+import { PlusCircle, Trash2, Save, X } from 'lucide-react';
 
-const LaunchConfiguration = ({ program }) => {
+const LaunchConfiguration = ({ program, isEditing = false, onUpdateLaunchArgs }) => {
     const [showAllArguments, setShowAllArguments] = useState(false);
+    const [localLaunchArgs, setLocalLaunchArgs] = useState(
+        program?.launchArguments?.length
+            ? [...program.launchArguments].sort((a, b) => a.argumentOrder - b.argumentOrder)
+            : []
+    );
+    const [newArgument, setNewArgument] = useState({
+        argumentValue: '',
+        argumentGroup: '',
+        description: ''
+    });
 
     if (!program || !program.platformBinary) {
         return (
@@ -11,12 +22,14 @@ const LaunchConfiguration = ({ program }) => {
         );
     }
 
-    const { platformBinary, launchArguments = [], diskImages = [] } = program;
+    const { platformBinary, diskImages = [] } = program;
     const binaryArguments = platformBinary.launchArguments || [];
 
     // Sort arguments by order
     const sortedBinaryArgs = [...binaryArguments].sort((a, b) => a.argumentOrder - b.argumentOrder);
-    const sortedProgramArgs = [...launchArguments].sort((a, b) => a.argumentOrder - b.argumentOrder);
+    const sortedProgramArgs = isEditing
+        ? localLaunchArgs
+        : [...(program.launchArguments || [])].sort((a, b) => a.argumentOrder - b.argumentOrder);
 
     // Get first disk image path (if any)
     const firstDiskImage = [...diskImages]
@@ -39,13 +52,74 @@ const LaunchConfiguration = ({ program }) => {
         sortedProgramArgs.forEach(arg => parts.push(arg.argumentValue));
 
         // Add autostart with first disk if available
-        const fileArg = sortedBinaryArgs.find(arg => arg.fileArgument);
-        if (fileArg && firstDiskImage?.filePath) {
-            parts.push(fileArg.argumentTemplate);
-            parts.push(firstDiskImage.filePath);
-        }
+        sortedBinaryArgs
+            .filter(arg => arg.fileArgument)
+            .forEach(arg => {
+                parts.push(arg.argumentTemplate)
+                parts.push('<fullpath>/' + firstDiskImage.imageName)
+            });
+
 
         return parts.join(' ');
+    };
+
+    // Editing methods
+    const handleAddArgument = () => {
+        if (!newArgument.argumentValue) return;
+
+        const newArg = {
+            ...newArgument,
+            argumentOrder: localLaunchArgs.length > 0
+                ? Math.max(...localLaunchArgs.map(arg => arg.argumentOrder)) + 1
+                : 1
+        };
+
+        const updatedArgs = [...localLaunchArgs, newArg];
+        setLocalLaunchArgs(updatedArgs);
+
+        // Reset new argument form
+        setNewArgument({
+            argumentValue: '',
+            argumentGroup: '',
+            description: ''
+        });
+
+        // Notify parent component of update
+        if (onUpdateLaunchArgs) {
+            onUpdateLaunchArgs(updatedArgs);
+        }
+    };
+
+    const handleDeleteArgument = (argToDelete) => {
+        const updatedArgs = localLaunchArgs
+            .filter(arg => arg !== argToDelete)
+            // Reorder the arguments to maintain correct order
+            .map((arg, index) => ({
+                ...arg,
+                argumentOrder: index + 1
+            }));
+
+        setLocalLaunchArgs(updatedArgs);
+
+        // Notify parent component of update
+        if (onUpdateLaunchArgs) {
+            onUpdateLaunchArgs(updatedArgs);
+        }
+    };
+
+    const handleUpdateArgument = (oldArg, updatedFields) => {
+        const updatedArgs = localLaunchArgs.map(arg =>
+            arg === oldArg
+                ? { ...arg, ...updatedFields }
+                : arg
+        );
+
+        setLocalLaunchArgs(updatedArgs);
+
+        // Notify parent component of update
+        if (onUpdateLaunchArgs) {
+            onUpdateLaunchArgs(updatedArgs);
+        }
     };
 
     return (
@@ -81,6 +155,7 @@ const LaunchConfiguration = ({ program }) => {
                             <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Order</th>
                             <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Argument</th>
                             <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Description</th>
+                            {isEditing && <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>}
                         </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
@@ -95,6 +170,7 @@ const LaunchConfiguration = ({ program }) => {
                                         <code className="px-2 py-1 bg-gray-100 rounded">{arg.argumentTemplate}</code>
                                     </td>
                                     <td className="px-4 py-2 text-sm text-gray-500">{arg.description}</td>
+                                    {isEditing && <td></td>}
                                 </tr>
                             ))}
 
@@ -104,9 +180,40 @@ const LaunchConfiguration = ({ program }) => {
                                 <td className="px-4 py-2 text-sm text-gray-500">Program</td>
                                 <td className="px-4 py-2 text-sm text-gray-500">{arg.argumentOrder}</td>
                                 <td className="px-4 py-2">
-                                    <code className="px-2 py-1 bg-gray-100 rounded">{arg.argumentValue}</code>
+                                    {isEditing ? (
+                                        <input
+                                            type="text"
+                                            className="w-full border rounded px-2 py-1"
+                                            value={arg.argumentValue}
+                                            onChange={(e) => handleUpdateArgument(arg, { argumentValue: e.target.value })}
+                                        />
+                                    ) : (
+                                        <code className="px-2 py-1 bg-gray-100 rounded">{arg.argumentValue}</code>
+                                    )}
                                 </td>
-                                <td className="px-4 py-2 text-sm text-gray-500">{arg.description}</td>
+                                <td className="px-4 py-2 text-sm text-gray-500">
+                                    {isEditing ? (
+                                        <input
+                                            type="text"
+                                            className="w-full border rounded px-2 py-1"
+                                            value={arg.description}
+                                            onChange={(e) => handleUpdateArgument(arg, { description: e.target.value })}
+                                        />
+                                    ) : (
+                                        arg.description
+                                    )}
+                                </td>
+                                {isEditing && (
+                                    <td className="px-4 py-2">
+                                        <button
+                                            className="text-red-500 hover:text-red-700"
+                                            onClick={() => handleDeleteArgument(arg)}
+                                            title="Delete Argument"
+                                        >
+                                            <Trash2 size={16} />
+                                        </button>
+                                    </td>
+                                )}
                             </tr>
                         ))}
 
@@ -119,12 +226,51 @@ const LaunchConfiguration = ({ program }) => {
                                     <code className="px-2 py-1 bg-gray-100 rounded">{firstDiskImage.filePath}</code>
                                 </td>
                                 <td className="px-4 py-2 text-sm text-gray-500">Boot disk image</td>
+                                {isEditing && <td></td>}
                             </tr>
                         )}
                         </tbody>
                     </table>
                 </div>
             </div>
+
+            {/* New Argument Form (only in edit mode) */}
+            {isEditing && (
+                <div className="bg-gray-50 p-4 rounded-lg mt-4">
+                    <h4 className="text-md font-semibold mb-2">Add New Argument</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                        <input
+                            type="text"
+                            placeholder="Argument Value"
+                            className="border rounded px-2 py-1"
+                            value={newArgument.argumentValue}
+                            onChange={(e) => setNewArgument(prev => ({ ...prev, argumentValue: e.target.value }))}
+                        />
+                        <input
+                            type="text"
+                            placeholder="Argument Group"
+                            className="border rounded px-2 py-1"
+                            value={newArgument.argumentGroup}
+                            onChange={(e) => setNewArgument(prev => ({ ...prev, argumentGroup: e.target.value }))}
+                        />
+                        <input
+                            type="text"
+                            placeholder="Description"
+                            className="border rounded px-2 py-1"
+                            value={newArgument.description}
+                            onChange={(e) => setNewArgument(prev => ({ ...prev, description: e.target.value }))}
+                        />
+                    </div>
+                    <button
+                        className="mt-2 bg-blue-500 text-white px-3 py-1 rounded flex items-center gap-2 hover:bg-blue-600"
+                        onClick={handleAddArgument}
+                        disabled={!newArgument.argumentValue}
+                    >
+                        <PlusCircle size={16} />
+                        Add Argument
+                    </button>
+                </div>
+            )}
 
             {/* Command Preview */}
             <div>

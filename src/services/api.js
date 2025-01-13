@@ -21,6 +21,7 @@ export async function searchAuthors(query = '') {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
         const data = await response.json();
+        console.log('Author search results:', data); // Added logging
         return data;
     } catch (error) {
         console.error('Error searching authors:', error);
@@ -59,6 +60,7 @@ export async function fetchCurationStatuses() {
 export async function fetchPrograms({
                                         titleSearch,
                                         platformId,
+                                        platformBinaryId,
                                         curationStatus,
                                         contentRating,
                                         authorId,
@@ -76,6 +78,7 @@ export async function fetchPrograms({
         // Add search parameters if they exist
         if (titleSearch) params.append('titleSearch', titleSearch);
         if (platformId) params.append('platformId', platformId);
+        if (platformBinaryId) params.append('platformBinaryId', platformBinaryId);
         if (curationStatus) params.append('curationStatus', curationStatus);
         if (contentRating) params.append('contentRating', contentRating);
         if (authorId) params.append('authorId', authorId);
