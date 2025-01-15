@@ -2,6 +2,7 @@
 import EmulatorStatus from './components/EmulatorStatus.jsx';
 import ProgramLibrary from './components/ProgramLibrary.jsx';
 import ProgramDetail from './components/ProgramDetail.jsx';
+import {PlatformList, PlatformDetail} from "./components/PlatformDetail.jsx";
 import 'bootstrap/dist/css/bootstrap.min.css';
 import React from 'react';
 import { BrowserRouter, Routes, Route, Link } from 'react-router-dom';
@@ -106,6 +107,8 @@ function App() {
                     <Route path="/status" element={<EmulatorStatusPage />} />
                     <Route path="/programs" element={<ProgramLibrary />} />
                     <Route path="/program/:id" element={<ProgramDetail />} />
+                    <Route path="/platforms" element={<PlatformList />} />
+                    <Route path="/platforms/:id" element={<PlatformDetail />} />
                 </Routes>
             </Layout>
         </BrowserRouter>
