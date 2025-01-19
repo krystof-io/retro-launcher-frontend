@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { Card, Form, Button, Row, Col, Badge, Alert } from 'react-bootstrap';
-import { Edit2, Save, X, AlertTriangle } from 'lucide-react';
+import { Edit2, Save, X, AlertTriangle, Play } from 'lucide-react';
 import { AsyncTypeahead } from 'react-bootstrap-typeahead';
 import { fetchProgramById, searchAuthors, fetchPlatforms} from '../services/api';
 import LaunchConfiguration from './LaunchConfiguration';
 import ProgramDiskInfo from './ProgramDiskInfo';
 import PlaybackTimeline from './PlaybackTimeline';
+import CurationInterface from './CurationInterface.jsx';
 import { useProgramUpdate } from '../hooks/useProgramUpdate';
 import 'react-bootstrap-typeahead/css/Typeahead.css';
 
@@ -20,6 +21,7 @@ const ProgramDetail = () => {
     const [authorOptions, setAuthorOptions] = useState([]);
     const [platforms, setPlatforms] = useState([]);
     const [selectedPlatform, setSelectedPlatform] = useState(null);
+    const [isCurating, setIsCurating] = useState(false);
 
     const {
         isLoading: isUpdating,
@@ -152,6 +154,33 @@ const ProgramDetail = () => {
         }));
     };
 
+    const handleTimelineUpdate = async (newTimeline) => {
+        try {
+            const updatedProgram = {
+                ...program,
+                playbackTimelineEvents: newTimeline
+            };
+
+            const response = await fetch(`/api/program/${id}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(updatedProgram)
+            });
+
+            if (!response.ok) throw new Error('Failed to update timeline');
+
+            const savedProgram = await response.json();
+            setProgram(savedProgram);
+            setEditedData(savedProgram);
+        } catch (err) {
+            setError('Failed to save timeline: ' + err.message);
+        }
+    };
+
+
+
     // Show any errors that occurred during update
     const displayError = error || updateError;
 
@@ -181,17 +210,35 @@ const ProgramDetail = () => {
                             </Button>
                         </div>
                     ) : (
-                        <Button variant="primary" onClick={handleEdit}>
-                            <Edit2 size={16} className="me-2" />
-                            Edit Details
-                        </Button>
+                        <div className="d-flex gap-2">
+                            <Button variant="primary" onClick={handleEdit}>
+                                <Edit2 size={16} className="me-2"/>
+                                Edit Details
+                            </Button>
+                            <Button
+                                variant="success"
+                                onClick={() => setIsCurating(true)}
+                            >
+                                <Play size={16} className="me-2"/>
+                                Curate Program
+                            </Button>
+                        </div>
                     )}
+
                 </div>
             </div>
 
+            {isCurating && (
+                <CurationInterface
+                    program={program}
+                    onUpdateTimeline={handleTimelineUpdate}
+                    onClose={() => setIsCurating(false)}
+                />
+            )}
+
             {displayError && (
                 <Alert variant="danger" className="mb-4">
-                    <AlertTriangle size={20} className="me-2" />
+                    <AlertTriangle size={20} className="me-2"/>
                     {displayError}
                 </Alert>
             )}
