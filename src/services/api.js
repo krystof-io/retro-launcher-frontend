@@ -66,6 +66,7 @@ export async function fetchPrograms({
                                         authorId,
                                         yearFrom,
                                         yearTo,
+                                        sourceId,
                                         page = 0,
                                         size = 10,
                                         sortField = 'title',
@@ -84,6 +85,7 @@ export async function fetchPrograms({
         if (authorId) params.append('authorId', authorId);
         if (yearFrom) params.append('yearFrom', yearFrom);
         if (yearTo) params.append('yearTo', yearTo);
+        if (sourceId) params.append('sourceId', sourceId);
 
         // Add pagination and sorting
         params.append('page', page);

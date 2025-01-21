@@ -191,7 +191,7 @@ const CurationInterface = ({ program, onUpdateTimeline, onClose }) => {
     return (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
             <Card className="w-full max-w-3xl">
-                <Card.Header className="bg-blue-500 text-white">
+                <Card.Header className="bg-blue-500">
                     <h3 className="text-xl font-semibold">Curating: {program.title}</h3>
                 </Card.Header>
 

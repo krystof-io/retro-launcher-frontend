@@ -51,6 +51,7 @@ const LaunchConfiguration = ({ program, isEditing = false, onUpdateLaunchArgs })
         // Add program-specific arguments
         sortedProgramArgs.forEach(arg => parts.push(arg.argumentValue));
 
+        if (firstDiskImage) {
         // Add autostart with first disk if available
         sortedBinaryArgs
             .filter(arg => arg.fileArgument)
@@ -58,8 +59,9 @@ const LaunchConfiguration = ({ program, isEditing = false, onUpdateLaunchArgs })
                 parts.push(arg.argumentTemplate)
                 parts.push('<fullpath>/' + firstDiskImage.imageName)
             });
-
-
+        } else {
+            parts.push('No disk images available');
+        }
         return parts.join(' ');
     };
 

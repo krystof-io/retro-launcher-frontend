@@ -1,11 +1,14 @@
 import React, { useState } from 'react';
-import { AlertTriangle, ChevronDown, ChevronUp, HardDrive, MinusCircle, Download, ArrowUp, ArrowDown, Trash2 } from 'lucide-react';
+import { Alert } from 'react-bootstrap';
+import { ChevronDown, ChevronUp, HardDrive, MinusCircle, Download, ArrowUp, ArrowDown, Trash2, Upload } from 'lucide-react';
 import ClickToCopy from './ClickToCopy';
 
 const ProgramDiskInfo = ({ program, isEditing, onUpdateDiskImages }) => {
     const [isExpanded, setIsExpanded] = useState(true);
+    const [uploading, setUploading] = useState(false);
+    const [uploadError, setUploadError] = useState(null);
 
-    if (!program || !program.diskImages || program.diskImages.length === 0) {
+    if (!isEditing && (!program || !program.diskImages || program.diskImages.length === 0)) {
         return (
             <div className="bg-white rounded-lg shadow p-4">
                 <div className="flex items-center gap-2 text-gray-500">
@@ -25,6 +28,39 @@ const ProgramDiskInfo = ({ program, isEditing, onUpdateDiskImages }) => {
         const sizes = ['Bytes', 'KB', 'MB', 'GB'];
         const i = Math.floor(Math.log(bytes) / Math.log(k));
         return `${parseFloat((bytes / Math.pow(k, i)).toFixed(2))} ${sizes[i]}`;
+    };
+
+    const handleFileSelect = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        setUploading(true);
+        setUploadError(null);
+
+        try {
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('programId', program.id);
+            formData.append('diskNumber', (program.diskImages?.length || 0) + 1);
+
+            const response = await fetch('/api/disk-images/upload', {
+                method: 'POST',
+                body: formData
+            });
+
+            if (!response.ok) {
+                throw new Error('Upload failed');
+            }
+
+            const newDiskImage = await response.json();
+            const updatedDiskImages = [...(program.diskImages || []), newDiskImage];
+            onUpdateDiskImages(updatedDiskImages);
+
+        } catch (err) {
+            setUploadError('Failed to upload file: ' + err.message);
+        } finally {
+            setUploading(false);
+        }
     };
 
     const handleDownload = async (diskId) => {
@@ -50,7 +86,6 @@ const ProgramDiskInfo = ({ program, isEditing, onUpdateDiskImages }) => {
             link.remove();
         } catch (error) {
             console.error('Error downloading disk image:', error);
-            // You might want to show an error message to the user here
         }
     };
 
@@ -75,12 +110,12 @@ const ProgramDiskInfo = ({ program, isEditing, onUpdateDiskImages }) => {
 
     const handleDelete = (diskId) => {
         if (window.confirm('Are you sure you want to remove this disk image?')) {
-            const newDisks = sortedDisks.filter(disk => disk.id !== diskId);
-            // Reorder remaining disks
-            newDisks.forEach((disk, index) => {
+            const updatedDiskImages = program.diskImages.filter(disk => disk.id !== diskId);
+            // Resequence remaining disks
+            updatedDiskImages.forEach((disk, index) => {
                 disk.diskNumber = index + 1;
             });
-            onUpdateDiskImages(newDisks);
+            onUpdateDiskImages(updatedDiskImages);
         }
     };
 
@@ -113,6 +148,27 @@ const ProgramDiskInfo = ({ program, isEditing, onUpdateDiskImages }) => {
             {isExpanded && (
                 <div className="border-t">
                     <div className="p-4">
+                        {/* Upload Section */}
+                        {isEditing && (
+                            <div className="mb-4">
+                                <label className="relative cursor-pointer bg-blue-500 text-black px-4 py-2 rounded-lg hover:bg-blue-600 inline-flex items-center gap-2">
+                                    <Upload className="w-4 h-4" />
+                                    <span>{uploading ? 'Uploading...' : 'Upload Disk'}</span>
+                                    <input
+                                        type="file"
+                                        className="hidden"
+                                        onChange={handleFileSelect}
+                                        disabled={uploading}
+                                    />
+                                </label>
+                                {uploadError && (
+                                    <div className="mt-2 text-sm text-red-600">
+                                        {uploadError}
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
                         <div className="overflow-x-auto">
                             <table className="min-w-full" width="100%">
                                 <thead>
@@ -131,9 +187,9 @@ const ProgramDiskInfo = ({ program, isEditing, onUpdateDiskImages }) => {
                                 {sortedDisks.map((disk, index) => (
                                     <tr key={disk.id} className="hover:bg-gray-50">
                                         <td className="py-3">
-                                            <span className="inline-flex items-center justify-center w-6 h-6 bg-gray-100 rounded-full text-sm font-medium">
-                                                {disk.diskNumber}
-                                            </span>
+                                                <span className="inline-flex items-center justify-center w-6 h-6 bg-gray-100 rounded-full text-sm font-medium">
+                                                    {disk.diskNumber}
+                                                </span>
                                         </td>
                                         <td className="py-3">
                                             <div>
@@ -170,9 +226,9 @@ const ProgramDiskInfo = ({ program, isEditing, onUpdateDiskImages }) => {
                                         <td className="py-3">
                                             {disk.diskNumber === 1 ? (
                                                 <span className="inline-flex items-center gap-1 text-green-600 bg-green-50 px-2 py-1 rounded text-sm">
-                                                    <span className="w-2 h-2 bg-green-500 rounded-full"></span>
-                                                    Boot Disk
-                                                </span>
+                                                        <span className="w-2 h-2 bg-green-500 rounded-full"></span>
+                                                        Boot Disk
+                                                    </span>
                                             ) : null}
                                         </td>
                                         <td className="py-3">
@@ -205,7 +261,7 @@ const ProgramDiskInfo = ({ program, isEditing, onUpdateDiskImages }) => {
                                                     </>
                                                 ) : (
                                                     <button
-                                                        className="px-2 py-1 bg-blue-500 text-black rounded text-sm hover:bg-blue-600"
+                                                        className="px-2 py-1 bg-blue-500 text-white rounded text-sm hover:bg-blue-600"
                                                         onClick={() => handleDownload(disk.id)}
                                                     >
                                                         <Download className="w-4 h-4 inline-block mr-1"/>

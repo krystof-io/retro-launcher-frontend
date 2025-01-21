@@ -4,6 +4,7 @@ import { AsyncTypeahead } from 'react-bootstrap-typeahead';
 import 'react-bootstrap-typeahead/css/Typeahead.css';
 import { Link } from 'react-router-dom';
 import { LucideCheckCircle2, LucideHelpCircle, LucideTriangleAlert, Search, X  } from 'lucide-react';
+import WindowedPagination from './WindowedPagination';
 import {
     fetchPlatforms,
     searchAuthors,
@@ -38,6 +39,7 @@ const ProgramLibrary = () => {
         author: '',
         yearFrom: '',
         yearTo: '',
+        sourceId: '',
     });
 
     // Results state
@@ -66,6 +68,7 @@ const ProgramLibrary = () => {
             author: '',
             yearFrom: '',
             yearTo: '',
+            sourceId: '',
         });
         setCurrentPage(1); // Reset to first page on filter change
     };
@@ -125,6 +128,7 @@ const ProgramLibrary = () => {
                 authorId: filters.author,
                 yearFrom: filters.yearFrom || undefined,
                 yearTo: filters.yearTo || undefined,
+                sourceId: filters.sourceId,
                 page: page - 1, // API uses 0-based pagination
                 size: itemsPerPage
             });
@@ -170,28 +174,20 @@ const ProgramLibrary = () => {
         status: PropTypes.string.isRequired,
     };
 
+    const handlePageChange = (newPage) => {
+        setCurrentPage(newPage);
+    };
+
     // Render pagination controls
     const renderPagination = () => {
-        const items = [];
-        for (let number = 1; number <= totalPages; number++) {
-            items.push(
-                <Pagination.Item
-                    key={number}
-                    active={number === currentPage}
-                    onClick={() => setCurrentPage(number)}
-                >
-                    {number}
-                </Pagination.Item>
-            );
-        }
+
         return (
-            <Pagination className="justify-content-center mt-4">
-                <Pagination.First onClick={() => setCurrentPage(1)} disabled={currentPage === 1} />
-                <Pagination.Prev onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1} />
-                {items}
-                <Pagination.Next onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages} />
-                <Pagination.Last onClick={() => setCurrentPage(totalPages)} disabled={currentPage === totalPages} />
-            </Pagination>
+            <WindowedPagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={handlePageChange}
+                maxVisible={10}
+            />
         );
     };
 
@@ -350,6 +346,18 @@ const ProgramLibrary = () => {
                                         max="2024"
                                     />
                                 </div>
+                            </Form.Group>
+                        </Col>
+                        {/* Source ID */}
+                        <Col md={6} lg={4}>
+                            <Form.Group>
+                                <Form.Label>Source ID</Form.Label>
+                                <Form.Control
+                                    type="text"
+                                    placeholder="Search by source ID..."
+                                    value={filters.sourceId}
+                                    onChange={(e) => updateFilter('sourceId', e.target.value)}
+                                />
                             </Form.Group>
                         </Col>
                     </Row>

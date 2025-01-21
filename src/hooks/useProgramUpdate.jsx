@@ -10,6 +10,7 @@ export const useProgramUpdate = (initialProgram) => {
         setError(null);
 
         try {
+            console.log('curatorNotes specifically:', updates.curatorNotes);
             const response = await fetch(`/api/program/${id}`, {
                 method: 'PUT',
                 headers: {

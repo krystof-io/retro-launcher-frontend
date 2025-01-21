@@ -1,18 +1,21 @@
-import React, { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
-import { Card, Form, Button, Row, Col, Badge, Alert } from 'react-bootstrap';
-import { Edit2, Save, X, AlertTriangle, Play } from 'lucide-react';
-import { AsyncTypeahead } from 'react-bootstrap-typeahead';
-import { fetchProgramById, searchAuthors, fetchPlatforms} from '../services/api';
+import React, {useState, useEffect} from 'react';
+import {useParams} from 'react-router-dom';
+import {Card, Form, Button, Row, Col, Badge, Alert } from 'react-bootstrap';
+import {Edit2, Save, X, AlertTriangle, Play, Trash2} from 'lucide-react';
+import {AsyncTypeahead} from 'react-bootstrap-typeahead';
+import {fetchProgramById, searchAuthors, fetchPlatforms} from '../services/api';
 import LaunchConfiguration from './LaunchConfiguration';
 import ProgramDiskInfo from './ProgramDiskInfo';
 import PlaybackTimeline from './PlaybackTimeline';
+import CuratorNotes from "./CuratorNotes.jsx";
 import CurationInterface from './CurationInterface.jsx';
-import { useProgramUpdate } from '../hooks/useProgramUpdate';
+import {useProgramUpdate} from '../hooks/useProgramUpdate';
+import LaunchInterface from './LaunchInterface';
 import 'react-bootstrap-typeahead/css/Typeahead.css';
+import { useNavigate } from 'react-router-dom';
 
 const ProgramDetail = () => {
-    const { id } = useParams();
+    const {id} = useParams();
     const [program, setProgram] = useState(null);
     const [isEditing, setIsEditing] = useState(false);
     const [editedData, setEditedData] = useState(null);
@@ -22,6 +25,8 @@ const ProgramDetail = () => {
     const [platforms, setPlatforms] = useState([]);
     const [selectedPlatform, setSelectedPlatform] = useState(null);
     const [isCurating, setIsCurating] = useState(false);
+    const navigate = useNavigate();
+    const [isLaunching, setIsLaunching] = useState(false);
 
     const {
         isLoading: isUpdating,
@@ -147,11 +152,38 @@ const ProgramDetail = () => {
             </Card>
         );
     }
-    const handleUpdateDiskImages = (updatedDisks) => {
-        setEditedData(prev => ({
-            ...prev,
-            diskImages: updatedDisks
-        }));
+    const handleUpdateDiskImages = async (updatedDiskImages) => {
+        if (!isEditing) return;
+
+        try {
+            // First pass: set to temporary negative disk numbers
+            // to avoid unique constraint violations during reordering
+            const tempImages = updatedDiskImages.map((disk, index) => ({
+                ...disk,
+                diskNumber: -(index + 1)
+            }));
+
+            // Update the edited data with temporary numbers
+            setEditedData(prev => ({
+                ...prev,
+                diskImages: tempImages
+            }));
+
+            // Second pass: set to final positive disk numbers
+            const finalImages = tempImages.map((disk, index) => ({
+                ...disk,
+                diskNumber: index + 1
+            }));
+
+            // Update the edited data with final numbers
+            setEditedData(prev => ({
+                ...prev,
+                diskImages: finalImages
+            }));
+
+        } catch (err) {
+            setError('Failed to update disk order: ' + err.message);
+        }
     };
 
     const handleTimelineUpdate = async (newTimeline) => {
@@ -180,9 +212,29 @@ const ProgramDetail = () => {
     };
 
 
+    const handleDeleteProgram = async () => {
+        if (window.confirm(`Are you sure you want to delete the program "${program.title}"? This action cannot be undone.`)) {
+            try {
+                const response = await fetch(`/api/program/${program.id}`, {
+                    method: 'DELETE'
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to delete program');
+                }
+
+                // Redirect to program library after successful deletion
+                navigate('/programs');
+            } catch (err) {
+                console.error('Error deleting program:', err);
+                setError('Failed to delete program. Please try again.');
+            }
+        }
+    };
 
     // Show any errors that occurred during update
     const displayError = error || updateError;
+
 
 
     return (
@@ -197,7 +249,7 @@ const ProgramDetail = () => {
                                 onClick={handleSave}
                                 disabled={isUpdating}
                             >
-                                <Save size={16} className="me-2" />
+                                <Save size={16} className="me-2"/>
                                 {isUpdating ? 'Saving...' : 'Save Changes'}
                             </Button>
                             <Button
@@ -205,11 +257,12 @@ const ProgramDetail = () => {
                                 onClick={handleCancel}
                                 disabled={isUpdating}
                             >
-                                <X size={16} className="me-2" />
+                                <X size={16} className="me-2"/>
                                 Cancel
                             </Button>
                         </div>
                     ) : (
+
                         <div className="d-flex gap-2">
                             <Button variant="primary" onClick={handleEdit}>
                                 <Edit2 size={16} className="me-2"/>
@@ -222,6 +275,21 @@ const ProgramDetail = () => {
                                 <Play size={16} className="me-2"/>
                                 Curate Program
                             </Button>
+                            <Button
+                                variant="primary"
+                                onClick={() => setIsLaunching(true)}
+                            >
+                                <Play size={16} className="me-2"/>
+                                Launch Program
+                            </Button>
+                            <Button
+                                variant="danger"
+                                onClick={handleDeleteProgram}
+                                className="d-flex align-items-center gap-2"
+                            >
+                                <Trash2 size={16} />
+                                Delete Program
+                            </Button>
                         </div>
                     )}
 
@@ -233,6 +301,13 @@ const ProgramDetail = () => {
                     program={program}
                     onUpdateTimeline={handleTimelineUpdate}
                     onClose={() => setIsCurating(false)}
+                />
+            )}
+
+            {isLaunching && (
+                <LaunchInterface
+                    program={program}
+                    onClose={() => setIsLaunching(false)}
                 />
             )}
 
@@ -273,6 +348,9 @@ const ProgramDetail = () => {
                                             disabled={!isEditing}
                                         />
                                     </Form.Group>
+                                    <div className="mb-2">
+                                        <strong>Source Url:</strong> <a target="_blank" href={program?.sourceUrl || ""}>Link</a>
+                                    </div>
                                 </Col>
                                 <Col md={4}>
                                     <Form.Group className="mb-3">
@@ -293,6 +371,18 @@ const ProgramDetail = () => {
                                             disabled={true}
                                         />
                                     </Form.Group>
+
+                                    <Form.Group className="mb-3">
+                                        <Form.Label>Source ID</Form.Label>
+                                        <Form.Control
+                                            type="text"
+                                            value={editedData?.sourceId || ''}
+                                            onChange={(e) => handleChange('sourceId', e.target.value)}
+                                            disabled={!isEditing}
+                                        />
+                                    </Form.Group>
+
+
                                 </Col>
                             </Row>
                         </Card.Body>
@@ -400,7 +490,7 @@ const ProgramDetail = () => {
 
                             {editedData?.curationStatus === 'BROKEN' && (
                                 <Alert variant="warning" className="d-flex align-items-center gap-2">
-                                    <AlertTriangle size={20} />
+                                    <AlertTriangle size={20}/>
                                     This program has been marked as broken
                                 </Alert>
                             )}
@@ -427,12 +517,27 @@ const ProgramDetail = () => {
                                         </div>
                                     )}
                                 </Col>
+                                <Col>
+                                    <div className="mb-2">
+                                        <strong>Source Rating:</strong> {program?.sourceRating || 0}
+                                    </div>
+                                </Col>
                             </Row>
                         </Card.Body>
                     </Card>
 
                 </Col>
 
+            </Row>
+            <Row className="mb-4">
+                <Col>
+                    <CuratorNotes
+                        program={program}
+                        setEditedData={setEditedData}
+                        editedData={editedData}
+                        isEditing={isEditing}
+                    />
+                </Col>
             </Row>
 
             <Row className="mb-4">
@@ -471,19 +576,19 @@ const ProgramDetail = () => {
                         <Form.Group className="mb-3">
                             <Form.Label>Platform Binary</Form.Label>
 
-                                <Form.Select
-                                    value={editedData?.platformBinary?.id || ''}
-                                    onChange={(e) => handleBinaryChange(e.target.value)}
-                                    disabled={!selectedPlatform}
-                                >
-                                    <option value="">Select Binary</option>
-                                    {selectedPlatform?.binaries?.map(binary => (
-                                        <option key={binary.id} value={binary.id}>
-                                            {binary.name} ({binary.variant})
-                                            {binary.isDefault && ' - Default'}
-                                        </option>
-                                    ))}
-                                </Form.Select>
+                            <Form.Select
+                                value={editedData?.platformBinary?.id || ''}
+                                onChange={(e) => handleBinaryChange(e.target.value)}
+                                disabled={!selectedPlatform}
+                            >
+                                <option value="">Select Binary</option>
+                                {selectedPlatform?.binaries?.map(binary => (
+                                    <option key={binary.id} value={binary.id}>
+                                        {binary.name} ({binary.variant})
+                                        {binary.isDefault && ' - Default'}
+                                    </option>
+                                ))}
+                            </Form.Select>
 
                         </Form.Group>
 
@@ -494,7 +599,7 @@ const ProgramDetail = () => {
                         )}
                     </Col>
 
-                        )}
+                )}
 
                 <Col>
                     {/* Launch Configuration */}
