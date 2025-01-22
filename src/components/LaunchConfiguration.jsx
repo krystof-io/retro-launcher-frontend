@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { PlusCircle, Trash2, Save, X } from 'lucide-react';
+import ArgumentSuggestions  from "./ArgumentSuggestions.jsx";
 
 const LaunchConfiguration = ({ program, isEditing = false, onUpdateLaunchArgs }) => {
     const [showAllArguments, setShowAllArguments] = useState(false);
@@ -156,8 +157,10 @@ const LaunchConfiguration = ({ program, isEditing = false, onUpdateLaunchArgs })
                             <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Source</th>
                             <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Order</th>
                             <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Argument</th>
+                            <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Group</th>
                             <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Description</th>
-                            {isEditing && <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>}
+                            {isEditing &&
+                                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>}
                         </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
@@ -170,6 +173,9 @@ const LaunchConfiguration = ({ program, isEditing = false, onUpdateLaunchArgs })
                                     <td className="px-4 py-2 text-sm text-gray-500">{arg.argumentOrder}</td>
                                     <td className="px-4 py-2">
                                         <code className="px-2 py-1 bg-gray-100 rounded">{arg.argumentTemplate}</code>
+                                    </td>
+                                    <td className="px-4 py-2">
+                                        <code className="px-2 py-1 bg-gray-100 rounded"></code>
                                     </td>
                                     <td className="px-4 py-2 text-sm text-gray-500">{arg.description}</td>
                                     {isEditing && <td></td>}
@@ -187,10 +193,26 @@ const LaunchConfiguration = ({ program, isEditing = false, onUpdateLaunchArgs })
                                             type="text"
                                             className="w-full border rounded px-2 py-1"
                                             value={arg.argumentValue}
-                                            onChange={(e) => handleUpdateArgument(arg, { argumentValue: e.target.value })}
+                                            onChange={(e) => handleUpdateArgument(arg, {argumentValue: e.target.value})}
                                         />
+
                                     ) : (
                                         <code className="px-2 py-1 bg-gray-100 rounded">{arg.argumentValue}</code>
+                                    )}
+
+
+
+                                </td>
+                                <td className="px-4 py-2 text-sm text-gray-500">
+                                    {isEditing ? (
+                                        <input
+                                            type="text"
+                                            className="w-full border rounded px-2 py-1"
+                                            value={arg.argumentGroup}
+                                            onChange={(e) => handleUpdateArgument(arg, {argumentGroup: e.target.value})}
+                                        />
+                                    ) : (
+                                        arg.argumentGroup
                                     )}
                                 </td>
                                 <td className="px-4 py-2 text-sm text-gray-500">
@@ -199,7 +221,7 @@ const LaunchConfiguration = ({ program, isEditing = false, onUpdateLaunchArgs })
                                             type="text"
                                             className="w-full border rounded px-2 py-1"
                                             value={arg.description}
-                                            onChange={(e) => handleUpdateArgument(arg, { description: e.target.value })}
+                                            onChange={(e) => handleUpdateArgument(arg, {description: e.target.value})}
                                         />
                                     ) : (
                                         arg.description
@@ -212,8 +234,11 @@ const LaunchConfiguration = ({ program, isEditing = false, onUpdateLaunchArgs })
                                             onClick={() => handleDeleteArgument(arg)}
                                             title="Delete Argument"
                                         >
-                                            <Trash2 size={16} />
+                                            <Trash2 size={16}/>
                                         </button>
+                                        <ArgumentSuggestions
+                                            onSelect={(value) => handleUpdateArgument(arg, {argumentValue: value})}
+                                        />
                                     </td>
                                 )}
                             </tr>
@@ -226,6 +251,9 @@ const LaunchConfiguration = ({ program, isEditing = false, onUpdateLaunchArgs })
                                 <td className="px-4 py-2 text-sm text-gray-500">999</td>
                                 <td className="px-4 py-2">
                                     <code className="px-2 py-1 bg-gray-100 rounded">{firstDiskImage.filePath}</code>
+                                </td>
+                                <td className="px-4 py-2">
+                                    <code className="px-2 py-1 bg-gray-100 rounded"></code>
                                 </td>
                                 <td className="px-4 py-2 text-sm text-gray-500">Boot disk image</td>
                                 {isEditing && <td></td>}
