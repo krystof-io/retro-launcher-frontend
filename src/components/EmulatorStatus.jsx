@@ -1,6 +1,7 @@
-import React from 'react';
+import React, {useEffect, useState} from 'react';
 import { Container, Card, Alert, Row, Col, ProgressBar } from 'react-bootstrap';
 import { useEmulatorStatus } from '../hooks/useEmulatorStatus';
+
 
 const SystemStats = ({ stats }) => {
     if (!stats) return null;
@@ -85,6 +86,8 @@ const ErrorDisplay = ({ error }) => {
 
 const EmulatorStatus = () => {
     const { status, error, isConnected } = useEmulatorStatus();
+    const [buildInfo, setBuildInfo] = useState(null);
+    const version = import.meta.env.VITE_APP_VERSION || 'dev';
 
     const formatUptime = (seconds) => {
         if (!seconds) return '0s';
@@ -97,6 +100,14 @@ const EmulatorStatus = () => {
         parts.push(`${remainingSeconds}s`);
         return parts.join(' ');
     };
+
+    useEffect(() => {
+        // Fetch build info on component mount
+        fetch('/api/build-info')
+            .then(res => res.json())
+            .then(info => setBuildInfo(info));
+    }, []);
+
 
     return (
         <Container className="mt-4">
@@ -129,8 +140,18 @@ const EmulatorStatus = () => {
                         </Card.Body>
                     </Card>
 
-                    <SystemStats stats={status.systemStats} />
-                    <ProcessStats process={status.process} />
+                    <SystemStats stats={status.systemStats}/>
+                    <ProcessStats process={status.process}/>
+                    <div className="version-info">
+                        <div>Frontend Version: {version}</div>
+                        {buildInfo && (
+                            <>
+                                <div>Controller Version: {buildInfo.controllerVersion}</div>
+                                <div>Agent Version: {buildInfo.agentVersion}</div>
+                            </>
+                        )}
+                        {/* Rest of status display */}
+                    </div>
                 </>
             )}
         </Container>
