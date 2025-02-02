@@ -13,6 +13,7 @@ import {useProgramUpdate} from '../hooks/useProgramUpdate';
 import LaunchInterface from './LaunchInterface';
 import 'react-bootstrap-typeahead/css/Typeahead.css';
 import { useNavigate } from 'react-router-dom';
+import ProgramVoting from './ProgramVoting';
 
 const ProgramDetail = () => {
     const {id} = useParams();
@@ -319,7 +320,7 @@ const ProgramDetail = () => {
             )}
 
             <Row className="mb-4">
-                <Col md={8}>
+                <Col md={6}>
                     {/* Basic Information */}
                     <Card className="h-100">
                         <Card.Header>
@@ -381,15 +382,36 @@ const ProgramDetail = () => {
                                             disabled={!isEditing}
                                         />
                                     </Form.Group>
-
-
                                 </Col>
                             </Row>
+                            <Row>
+                                <Col md={6}>
+                                    <Form.Group className="mb-3">
+                                        <Form.Label>MGV Index</Form.Label>
+                                        <Form.Control
+                                            type="text"
+                                            value={editedData?.mgvIndex || ''}
+                                            disabled={true}
+                                        />
+                                    </Form.Group>
+                                </Col>
+                                <Col md={6}>
+                                    <Form.Group className="mb-3">
+                                        <Form.Label>Tier</Form.Label>
+                                        <Form.Control
+                                            type="text"
+                                            value={editedData?.tier || ''}
+                                            disabled={true}
+                                        />
+                                    </Form.Group>
+                                </Col>
+                            </Row>
+
                         </Card.Body>
                     </Card>
                 </Col>
 
-                <Col md={4}>
+                <Col md={3}>
                     {/* Author Information */}
                     <Card className="h-100">
                         <Card.Header>
@@ -446,6 +468,9 @@ const ProgramDetail = () => {
                             )}
                         </Card.Body>
                     </Card>
+                </Col>
+                <Col md={3}>
+                    <ProgramVoting program={program} />
                 </Col>
             </Row>
 

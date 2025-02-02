@@ -13,6 +13,7 @@ import {
     fetchPrograms
 } from '../services/api';
 import PropTypes from 'prop-types';
+import SortableTableHeader from './SortableTableHeader';
 
 const ProgramLibrary = () => {
     // Pagination state
@@ -28,7 +29,28 @@ const ProgramLibrary = () => {
     const [curationStatuses, setCurationStatuses] = useState([]);
     const [isLoadingAuthors, setIsLoadingAuthors] = useState(false);
     const [platformBinaries, setPlatformBinaries] = useState([]);
+    const [sortState, setSortState] = useState({
+        field: 'title',
+        direction: 'ASC'
+    });
 
+    // const fetchPrograms = async () => {
+    //     try {
+    //         setIsLoading(true);
+    //         const response = await fetch(`/api/programs/search?page=${currentPage}&size=${itemsPerPage}&sortField=${sortState.field}&sortDirection=${sortState.direction}`);
+    //         const data = await response.json();
+    //         setSearchResults(data.content);
+    //         setTotalPages(data.totalPages);
+    //     } catch (error) {
+    //         console.error('Error fetching programs:', error);
+    //     } finally {
+    //         setIsLoading(false);
+    //     }
+    // };
+    const handleSort = (field, direction) => {
+        setSortState({ field, direction });
+        // This will trigger a re-fetch due to the useEffect dependency
+    };
     // Search criteria state
     const [filters, setFilters] = useState({
         titleSearch: '',
@@ -116,6 +138,7 @@ const ProgramLibrary = () => {
     };
 
     const searchPrograms = async (page) => {
+        console.log("searchPrograms called")
         setIsLoading(true);
         try {
 
@@ -130,7 +153,9 @@ const ProgramLibrary = () => {
                 yearTo: filters.yearTo || undefined,
                 sourceId: filters.sourceId,
                 page: page - 1, // API uses 0-based pagination
-                size: itemsPerPage
+                size: itemsPerPage,
+                sortDirection: sortState.direction,
+                sortField: sortState.field,
             });
 
             setSearchResults(result.content);
@@ -142,10 +167,14 @@ const ProgramLibrary = () => {
         }
     };
 
+    // useEffect(() => {
+    //     fetchPrograms();
+    // }, [currentPage, filters, sortState]);
+
     // Trigger search when page changes
     useEffect(() => {
         searchPrograms(currentPage);
-    }, [currentPage, filters]);
+    }, [currentPage, filters, sortState]);
 
 
     const StatusBadge = ({ status }) => {
@@ -370,15 +399,52 @@ const ProgramLibrary = () => {
                     <Table responsive hover>
                         <thead>
                         <tr>
-                            <th>Title</th>
-                            <th>Platform</th>
+                            <SortableTableHeader
+                                field="title"
+                                label="Title"
+                                currentSort={sortState}
+                                onSort={handleSort}
+                            />
+                            <SortableTableHeader
+                                field="platform"
+                                label="Platform"
+                                currentSort={sortState}
+                                onSort={handleSort}
+                            />
                             <th>Binary</th>
                             <th>Type</th>
-                            <th>Year</th>
+                            <SortableTableHeader
+                                field="releaseYear"
+                                label="Year"
+                                currentSort={sortState}
+                                onSort={handleSort}
+                            />
                             <th>Author</th>
-                            <th>Status</th>
-                            <th>Rating</th>
+                            <SortableTableHeader
+                                field="curationStatus"
+                                label="Status"
+                                currentSort={sortState}
+                                onSort={handleSort}
+                            />
+                            <SortableTableHeader
+                                field="contentRating"
+                                label="Rating"
+                                currentSort={sortState}
+                                onSort={handleSort}
+                            />
                             <th>Runs</th>
+                            <SortableTableHeader
+                                field="mgvIndex"
+                                label="MGV"
+                                currentSort={sortState}
+                                onSort={handleSort}
+                            />
+                            <SortableTableHeader
+                                field="tier"
+                                label="Tier"
+                                currentSort={sortState}
+                                onSort={handleSort}
+                            />
                             <th>Actions</th>
                         </tr>
                         </thead>
@@ -431,6 +497,8 @@ const ProgramLibrary = () => {
                                         </Badge>
                                     </td>
                                     <td>{program.runCount}</td>
+                                    <td>{program.mgvIndex}</td>
+                                    <td>{program.tier}</td>
                                     <td>
                                         <Button
                                             variant="link"

@@ -4,7 +4,6 @@ import { Link, useParams, useNavigate } from 'react-router-dom';
 import { PlusCircle, Save, X, ArrowLeft, Trash2 } from 'lucide-react';
 import BinaryDetail from './BinaryDetail';
 
-
 // PlatformDetail Component
 const PlatformDetail = () => {
     const { id } = useParams();
