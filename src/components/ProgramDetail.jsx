@@ -50,6 +50,8 @@ const ProgramDetail = () => {
                 setProgram(programData);
                 setEditedData(programData);
                 setSelectedPlatform(platformsData.find(p => p.id === programData.platform.id));
+
+                document.title = `RLC - ${programData.title} - Program Details`;
             } catch (err) {
                 setError('Failed to load program details');
                 console.error(err);

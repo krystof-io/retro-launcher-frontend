@@ -114,6 +114,7 @@ const ProgramLibrary = () => {
                     }))
                 );
                 setPlatformBinaries(allBinaries);
+                document.title = `RLC - Program Library`;
             } catch (error) {
                 console.error('Error loading initial data:', error);
                 // You might want to show an error message to the user here
