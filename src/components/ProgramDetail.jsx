@@ -50,8 +50,6 @@ const ProgramDetail = () => {
                 setProgram(programData);
                 setEditedData(programData);
                 setSelectedPlatform(platformsData.find(p => p.id === programData.platform.id));
-
-                document.title = `RLC - ${programData.title} - Program Details`;
             } catch (err) {
                 setError('Failed to load program details');
                 console.error(err);
@@ -67,6 +65,15 @@ const ProgramDetail = () => {
     const handleEdit = () => {
         setIsEditing(true);
     };
+
+    useEffect(() => {
+        if (program?.title) {
+            document.title = `RLC - ${program.title} - Program Details`;
+        } else {
+            document.title = 'RLC - Program Details';
+        }
+
+    }, [program?.title]);
 
     // Add platform change handler
     const handlePlatformChange = (platformId) => {
