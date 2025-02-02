@@ -36,8 +36,6 @@ const ProgramVoting = ({ program }) => {
                 throw new Error(errorData.message || 'Failed to submit vote');
             }
 
-            // Could reload program here to get updated stats
-            window.location.reload();
         } catch (err) {
             setError(err.message);
         } finally {
