@@ -90,20 +90,29 @@ const ProgramDiskInfo = ({ program, isEditing, onUpdateDiskImages }) => {
     };
 
     const handleMove = (diskId, direction) => {
+        console.log('Move disk', diskId, direction);
         const currentIndex = sortedDisks.findIndex(disk => disk.id === diskId);
         if (direction === 'up' && currentIndex > 0) {
             // Swap disk numbers with the previous disk
+
+
             const newDisks = [...sortedDisks];
             const temp = newDisks[currentIndex].diskNumber;
+            const tempDisk = newDisks[currentIndex];
             newDisks[currentIndex].diskNumber = newDisks[currentIndex - 1].diskNumber;
             newDisks[currentIndex - 1].diskNumber = temp;
+            newDisks[currentIndex] = newDisks[currentIndex - 1];
+            newDisks[currentIndex - 1] = tempDisk;
             onUpdateDiskImages(newDisks);
         } else if (direction === 'down' && currentIndex < sortedDisks.length - 1) {
             // Swap disk numbers with the next disk
             const newDisks = [...sortedDisks];
             const temp = newDisks[currentIndex].diskNumber;
+            const tempDisk = newDisks[currentIndex];
             newDisks[currentIndex].diskNumber = newDisks[currentIndex + 1].diskNumber;
             newDisks[currentIndex + 1].diskNumber = temp;
+            newDisks[currentIndex] = newDisks[currentIndex + 1];
+            newDisks[currentIndex + 1] = tempDisk;
             onUpdateDiskImages(newDisks);
         }
     };
